@@ -288,12 +288,6 @@ MIT License — see [LICENSE](LICENSE) for details.
 
 ---
 
-## Author
-
-**Chandan Sharma** — IoT + AI Medical Monitoring Project
-
----
-
 ## Medical Disclaimer
 
 This software is for research and educational purposes only. It is NOT a certified medical device. Always consult a qualified ophthalmologist for glaucoma diagnosis and management.
@@ -305,9 +299,6 @@ Normal IOP range: 10–21 mmHg.
 <img width="1249" height="740" alt="glaucoma_monitor/assets/flowchart.png"  src="glaucoma_monitor/assets/flowchart.png"/>
 
 ### 📊 Working Demo Video 
-## 🎥 Demo Video
-
-## 🎥 Demo Video
 
 [▶️ Watch Demo](assets/demo.mp4)
 
