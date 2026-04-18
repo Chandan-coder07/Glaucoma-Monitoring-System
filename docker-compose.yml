@@ -1,0 +1,67 @@
+version: "3.9"
+
+services:
+  # ── MongoDB ──────────────────────────────────────────────────────────────
+  mongo:
+    image: mongo:7.0
+    container_name: glaucoma_mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: glaucoma_monitor
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Backend ──────────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: glaucoma_backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      MONGO_URL: mongodb://mongo:27017
+      DB_NAME: glaucoma_monitor
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-dev-secret-key-change-in-prod}
+      SERIAL_PORT: ${SERIAL_PORT:-/dev/tty.usbserial-0001}
+      BAUD_RATE: ${BAUD_RATE:-9600}
+      ALERT_EMAIL: ${ALERT_EMAIL:-}
+      ALERT_EMAIL_PASSWORD: ${ALERT_EMAIL_PASSWORD:-}
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
+      TWILIO_FROM_NUMBER: ${TWILIO_FROM_NUMBER:-}
+      DOCTOR_PHONE_NUMBER: ${DOCTOR_PHONE_NUMBER:-}
+    volumes:
+      # Mount serial device for ESP32 access
+      - /dev:/dev
+    devices:
+      - /dev/ttyUSB0:/dev/ttyUSB0  # Adjust to your serial port
+    privileged: true  # Required for serial port access
+
+  # ── Frontend (nginx) ─────────────────────────────────────────────────────
+  frontend:
+    image: nginx:alpine
+    container_name: glaucoma_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - backend
+
+volumes:
+  mongo_data:
+    driver: local

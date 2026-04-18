@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>GlaucoMonitor — Patient Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --sb:#14532d; --sb-h:#166534; --g5:#22c55e; --g1:#dcfce7; --g0:#f0fdf4;
+      --bg:#f8fafc; --card:#fff; --text:#0f172a; --text2:#64748b; --muted:#94a3b8;
+      --border:#e2e8f0; --rL:#16a34a; --rM:#d97706; --rH:#dc2626;
+      --sh:0 1px 3px rgba(0,0,0,.06); --shM:0 4px 16px rgba(0,0,0,.08);
+      --r:14px; --sw:240px;
+    }
+    [data-theme="dark"] {
+      --bg:#0f172a; --card:#1e293b; --text:#f1f5f9; --text2:#94a3b8; --muted:#64748b;
+      --border:#334155; --sb:#0f2d1a; --sb-h:#14532d;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);display:flex;min-height:100vh;transition:background .3s,color .3s}
+
+    /* Sidebar */
+    .sidebar{width:var(--sw);background:var(--sb);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100;transition:transform .3s}
+    .sidebar.collapsed{transform:translateX(-100%)}
+    .logo{padding:20px 16px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:10px}
+    .logo-icon{width:38px;height:38px;background:rgba(255,255,255,.12);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .logo-icon svg{width:20px;height:20px;fill:white}
+    .logo-text h2{font-family:'DM Serif Display',serif;font-size:15px;color:white;line-height:1.1}
+    .logo-text span{font-size:10px;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.08em}
+    .hospital-name{font-size:10px;color:rgba(255,255,255,.6);padding:6px 16px;border-bottom:1px solid rgba(255,255,255,.06);font-style:italic}
+    nav{flex:1;padding:12px 10px;overflow-y:auto}
+    .nav-label{font-size:10px;font-weight:600;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.1em;padding:8px 8px 4px;margin-top:8px}
+    .nav-item{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:8px;cursor:pointer;color:rgba(255,255,255,.65);font-size:13px;font-weight:500;margin-bottom:2px;text-decoration:none;transition:background .15s,color .15s;position:relative}
+    .nav-item:hover{background:rgba(255,255,255,.08);color:white}
+    .nav-item.active{background:rgba(255,255,255,.14);color:white;font-weight:600}
+    .nav-item svg{width:16px;height:16px;flex-shrink:0}
+    .nav-badge{margin-left:auto;background:var(--rH);color:white;font-size:10px;font-weight:700;padding:1px 6px;border-radius:20px}
+    .sidebar-footer{padding:12px 10px;border-top:1px solid rgba(255,255,255,.08)}
+    .user-chip{display:flex;align-items:center;gap:9px;padding:9px 11px;background:rgba(255,255,255,.07);border-radius:9px;cursor:pointer}
+    .avatar{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:white;flex-shrink:0;overflow:hidden}
+    .avatar img{width:100%;height:100%;object-fit:cover}
+    .user-info h4{font-size:12px;color:white;font-weight:600}
+    .user-info span{font-size:10px;color:rgba(255,255,255,.4)}
+    .btn-logout{margin-left:auto;background:none;border:none;cursor:pointer;color:rgba(255,255,255,.4);padding:3px;border-radius:5px}
+    .btn-logout:hover{color:white}
+    .btn-logout svg{width:15px;height:15px}
+
+    /* Main */
+    .main{margin-left:var(--sw);flex:1;display:flex;flex-direction:column;min-height:100vh;transition:margin .3s}
+    .main.full{margin-left:0}
+
+    /* Topbar */
+    .topbar{background:var(--card);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+    .topbar-left{display:flex;align-items:center;gap:12px}
+    .btn-menu{background:none;border:none;cursor:pointer;color:var(--text2);padding:6px;border-radius:7px;display:flex;align-items:center}
+    .btn-menu:hover{background:var(--bg)}
+    .topbar-left h3{font-size:16px;font-weight:700}
+    .topbar-left span{font-size:12px;color:var(--text2)}
+    .topbar-right{display:flex;align-items:center;gap:10px}
+    .status-pill{display:flex;align-items:center;gap:5px;padding:5px 11px;background:var(--g0);border:1px solid var(--g1);border-radius:20px;font-size:11px;font-weight:600;color:var(--rL)}
+    .ws-dot{width:6px;height:6px;border-radius:50%;background:var(--g5);animation:pulse 1.5s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+    .btn-icon{background:none;border:1px solid var(--border);border-radius:8px;padding:6px 10px;cursor:pointer;color:var(--text2);display:flex;align-items:center;gap:5px;font-size:12px;font-family:'DM Sans',sans-serif;transition:all .15s}
+    .btn-icon:hover{background:var(--bg);color:var(--text)}
+    .btn-icon svg{width:14px;height:14px}
+    .btn-primary{background:var(--sb);color:white;border:none;border-radius:8px;padding:7px 14px;cursor:pointer;font-size:12px;font-weight:600;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:5px;transition:background .15s}
+    .btn-primary:hover{background:var(--sb-h)}
+    .btn-primary svg{width:14px;height:14px}
+
+    /* Notification bell */
+    .bell-wrap{position:relative}
+    .bell-badge{position:absolute;top:-4px;right:-4px;background:var(--rH);color:white;font-size:9px;font-weight:700;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;display:none}
+    .bell-badge.show{display:flex}
+    .notif-dropdown{position:absolute;top:38px;right:0;width:300px;background:var(--card);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shM);z-index:200;display:none;max-height:350px;overflow-y:auto}
+    .notif-dropdown.open{display:block}
+    .notif-header{padding:12px 14px;border-bottom:1px solid var(--border);font-size:13px;font-weight:700;display:flex;justify-content:space-between;align-items:center}
+    .notif-item{padding:10px 14px;border-bottom:1px solid var(--bg);cursor:pointer;transition:background .1s}
+    .notif-item:hover{background:var(--bg)}
+    .notif-item .ni-title{font-size:12px;font-weight:600;color:var(--text)}
+    .notif-item .ni-time{font-size:11px;color:var(--muted);margin-top:2px}
+    .notif-item.unread{border-left:3px solid var(--rH)}
+
+    /* Dashboard */
+    .content{padding:20px 24px;flex:1}
+    .alert-banner{background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:11px 14px;display:none;align-items:center;gap:9px;margin-bottom:16px}
+    .alert-banner.show{display:flex}
+    .alert-banner svg{width:16px;height:16px;fill:var(--rH);flex-shrink:0}
+    .alert-banner span{font-size:12px;font-weight:600;color:var(--rH)}
+
+    /* Tabs */
+    .tabs{display:flex;gap:4px;margin-bottom:18px;background:var(--bg);border-radius:10px;padding:4px;border:1px solid var(--border);width:fit-content}
+    .tab{padding:7px 16px;border-radius:7px;cursor:pointer;font-size:12px;font-weight:600;color:var(--text2);transition:all .15s;border:none;background:none;font-family:'DM Sans',sans-serif}
+    .tab.active{background:var(--card);color:var(--text);box-shadow:var(--sh)}
+    .tab-content{display:none}
+    .tab-content.active{display:block}
+
+    /* Stats row */
+    .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
+    .stat-card{background:var(--card);border-radius:var(--r);padding:18px;box-shadow:var(--sh);border:1px solid var(--border);transition:box-shadow .2s,transform .2s}
+    .stat-card:hover{box-shadow:var(--shM);transform:translateY(-1px)}
+    .stat-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;display:flex;align-items:center;gap:5px}
+    .stat-label svg{width:13px;height:13px}
+    .stat-value{font-size:28px;font-weight:800;color:var(--text);line-height:1;margin-bottom:4px}
+    .stat-unit{font-size:13px;font-weight:500;color:var(--text2)}
+    .stat-sub{font-size:11px;color:var(--muted);margin-top:4px}
+    .risk-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+    .risk-badge::before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor}
+    .risk-badge.LOW{background:#dcfce7;color:var(--rL)}
+    .risk-badge.MEDIUM{background:#fef3c7;color:var(--rM)}
+    .risk-badge.HIGH{background:#fee2e2;color:var(--rH)}
+
+    /* Grid */
+    .grid-2{display:grid;grid-template-columns:1fr 320px;gap:14px}
+    .grid-2b{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+    .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:14px}
+    .card{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);border:1px solid var(--border)}
+    .card-head{padding:15px 18px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+    .card-head h3{font-size:14px;font-weight:700}
+    .card-head .meta{font-size:11px;color:var(--muted)}
+    .card-body{padding:16px 18px}
+    .chart-wrap{position:relative;height:200px}
+
+    /* Gauge */
+    .gauge-wrap{text-align:center;padding:12px 0 6px}
+    .gauge-circle{width:130px;height:130px;margin:0 auto 10px;position:relative}
+    .gauge-circle svg{width:100%;height:100%;transform:rotate(-90deg)}
+    .gauge-bg{fill:none;stroke:var(--border);stroke-width:10}
+    .gauge-fill{fill:none;stroke-width:10;stroke-linecap:round;transition:stroke-dashoffset 1s ease,stroke .5s}
+    .gauge-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center}
+    .g-val{font-size:24px;font-weight:800;color:var(--text);line-height:1}
+    .g-unit{font-size:10px;color:var(--muted)}
+    .thresh-row{display:flex;flex-direction:column;gap:5px;text-align:left;margin-top:12px}
+    .thresh-item{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--text2)}
+    .thresh-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+    /* Medicine */
+    .med-list{display:flex;flex-direction:column;gap:8px}
+    .med-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg);border-radius:9px;border:1px solid var(--border);transition:border-color .15s}
+    .med-item:hover{border-color:var(--g1)}
+    .med-icon{width:34px;height:34px;background:var(--g1);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .med-icon svg{width:16px;height:16px;fill:var(--rL)}
+    .med-info{flex:1}
+    .med-name{font-size:12px;font-weight:600}
+    .med-detail{font-size:11px;color:var(--muted);margin-top:1px}
+    .med-check{width:24px;height:24px;border-radius:50%;border:2px solid var(--border);background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
+    .med-check.done{background:var(--rL);border-color:var(--rL)}
+    .med-check svg{width:12px;height:12px;fill:white;opacity:0}
+    .med-check.done svg{opacity:1}
+
+    /* History table */
+    .htable{width:100%;border-collapse:collapse}
+    .htable th{text-align:left;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;padding:7px 9px;border-bottom:1px solid var(--border)}
+    .htable td{padding:9px;font-size:12px;color:var(--text);border-bottom:1px solid var(--bg)}
+    .htable tr:last-child td{border-bottom:none}
+    .htable tr:hover td{background:var(--bg)}
+    .iop-high{color:var(--rH);font-weight:700}
+    .iop-med{color:var(--rM);font-weight:700}
+    .iop-low{color:var(--rL);font-weight:700}
+
+    /* Calendar */
+    .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-top:10px}
+    .cal-day-label{font-size:10px;font-weight:600;color:var(--muted);text-align:center;padding:3px 0}
+    .cal-day{height:32px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;cursor:pointer;position:relative;transition:transform .1s}
+    .cal-day:hover{transform:scale(1.1)}
+    .cal-day.empty{background:transparent}
+    .cal-day.has-data{font-weight:600}
+    .cal-day.LOW{background:#dcfce7;color:var(--rL)}
+    .cal-day.MEDIUM{background:#fef3c7;color:var(--rM)}
+    .cal-day.HIGH{background:#fee2e2;color:var(--rH)}
+    .cal-day.today{ring:2px solid var(--text);outline:2px solid var(--text)}
+    .cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+    .cal-nav h4{font-size:13px;font-weight:700}
+    .cal-btn{background:none;border:1px solid var(--border);border-radius:6px;padding:3px 8px;cursor:pointer;color:var(--text2);font-size:13px}
+
+    /* Symptom logger */
+    .symptom-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+    .symptom-btn{padding:10px 12px;border:1.5px solid var(--border);border-radius:9px;cursor:pointer;background:var(--bg);text-align:center;font-size:12px;font-weight:600;color:var(--text2);transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:4px}
+    .symptom-btn:hover,.symptom-btn.active{border-color:var(--sb);background:var(--g0);color:var(--sb)}
+    .symptom-btn svg{width:20px;height:20px}
+    .severity-slider{width:100%;margin-top:8px}
+    .lifestyle-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:10px}
+    .lf-input{display:flex;flex-direction:column;gap:4px}
+    .lf-input label{font-size:11px;font-weight:600;color:var(--muted)}
+    .lf-input input{padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;outline:none}
+    .lf-input input:focus{border-color:var(--sb)}
+
+    /* Messages */
+    .msg-list{display:flex;flex-direction:column;gap:8px;max-height:300px;overflow-y:auto;padding:4px}
+    .msg-bubble{max-width:85%;padding:9px 12px;border-radius:12px;font-size:12px;line-height:1.4}
+    .msg-bubble.mine{background:var(--sb);color:white;margin-left:auto;border-bottom-right-radius:3px}
+    .msg-bubble.theirs{background:var(--bg);color:var(--text);border:1px solid var(--border);border-bottom-left-radius:3px}
+    .msg-time{font-size:10px;color:var(--muted);margin-top:2px;text-align:right}
+    .msg-input-row{display:flex;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+    .msg-input{flex:1;padding:9px 12px;border:1.5px solid var(--border);border-radius:9px;font-size:13px;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;outline:none}
+    .msg-input:focus{border-color:var(--sb)}
+
+    /* Photo upload */
+    .photo-upload{position:relative;cursor:pointer}
+    .photo-upload input{display:none}
+    .photo-overlay{position:absolute;inset:0;background:rgba(0,0,0,.5);border-radius:50%;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s}
+    .photo-upload:hover .photo-overlay{opacity:1}
+    .photo-overlay svg{width:14px;height:14px;fill:white}
+
+    /* Print */
+    @media print{
+      .sidebar,.topbar,.tabs,.btn-icon,.btn-primary{display:none!important}
+      .main{margin-left:0!important}
+      .content{padding:0!important}
+    }
+
+    /* Mobile */
+    @media(max-width:900px){
+      .sidebar{transform:translateX(-100%)}
+      .sidebar.mobile-open{transform:translateX(0)}
+      .main{margin-left:0}
+      .stats-row{grid-template-columns:repeat(2,1fr)}
+      .grid-2{grid-template-columns:1fr}
+      .grid-2b{grid-template-columns:1fr}
+      .grid-3{grid-template-columns:1fr 1fr}
+    }
+    @media(max-width:600px){
+      .stats-row{grid-template-columns:1fr 1fr}
+      .grid-3{grid-template-columns:1fr}
+    }
+
+    /* Loading */
+    .loading-overlay{position:fixed;inset:0;background:var(--card);display:flex;align-items:center;justify-content:center;z-index:9999;transition:opacity .3s}
+    .spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--sb);border-radius:50%;animation:spin .7s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* Language selector */
+    .lang-select{padding:5px 8px;border:1px solid var(--border);border-radius:7px;background:var(--bg);color:var(--text2);font-size:11px;font-family:'DM Sans',sans-serif;cursor:pointer;outline:none}
+  </style>
+</head>
+<body>
+<div class="loading-overlay" id="loader"><div class="spinner"></div></div>
+
+<!-- Sidebar -->
+<aside class="sidebar" id="sidebar">
+  <div class="logo">
+    <div class="logo-icon"><svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg></div>
+    <div class="logo-text"><h2>GlaucoMonitor</h2><span>Patient Portal</span></div>
+  </div>
+  <div class="hospital-name" id="sb-hospital">Loading...</div>
+  <nav>
+    <div class="nav-label">Overview</div>
+    <a class="nav-item active" onclick="showTab('dashboard')">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg> Dashboard
+    </a>
+    <a class="nav-item" onclick="showTab('charts')">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3.5 18.49l6-6.01 4 4L22 6.92l-1.41-1.41-7.09 7.97-4-4L2 16.99z"/></svg> Charts
+    </a>
+    <a class="nav-item" onclick="showTab('calendar')">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg> Calendar
+    </a>
+    <div class="nav-label">Health</div>
+    <a class="nav-item" onclick="showTab('symptoms')">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg> Symptoms
+    </a>
+    <a class="nav-item" onclick="showTab('lifestyle')">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13.49 5.48c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-3.6 13.9l1-4.4 2.1 2v6h2v-7.5l-2.1-2 .6-3c1.3 1.5 3.3 2.5 5.5 2.5v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1l-5.2 2.2v4.7h2v-3.4l1.8-.7-1.6 8.1-4.9-1-.4 2 7 1.4z"/></svg> Lifestyle
+    </a>
+    <a class="nav-item" onclick="showTab('messages')" id="nav-msg">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/></svg> Messages
+      <span class="nav-badge" id="msg-badge" style="display:none">0</span>
+    </a>
+    <div class="nav-label">Records</div>
+    <a class="nav-item" onclick="showTab('history')">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg> History
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-chip">
+      <label class="photo-upload">
+        <div class="avatar" id="user-avatar-sb">P</div>
+        <div class="photo-overlay"><svg viewBox="0 0 24 24"><path d="M3 4V1h2v3h3v2H5v3H3V6H0V4h3zm3 6V7h3V4h7l1.83 2H21c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2V10h3zm7 9c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-3.2-5c0 1.77 1.43 3.2 3.2 3.2 1.77 0 3.2-1.43 3.2-3.2 0-1.77-1.43-3.2-3.2-3.2-1.77 0-3.2 1.43-3.2 3.2z"/></svg></div>
+        <input type="file" accept="image/*" onchange="uploadPhoto(this)">
+      </label>
+      <div class="user-info"><h4 id="user-name-sb">Loading...</h4><span>Patient</span></div>
+      <button class="btn-logout" onclick="logout()"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/></svg></button>
+    </div>
+  </div>
+</aside>
+
+<!-- Main -->
+<main class="main" id="main">
+  <div class="topbar">
+    <div class="topbar-left">
+      <button class="btn-menu" onclick="toggleSidebar()"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg></button>
+      <div><h3 id="page-title">Dashboard</h3><span id="current-date"></span></div>
+    </div>
+    <div class="topbar-right">
+      <select class="lang-select" onchange="setLanguage(this.value)" id="lang-select">
+        <option value="en">🇬🇧 English</option>
+        <option value="ta">🇮🇳 தமிழ்</option>
+        <option value="hi">🇮🇳 हिंदी</option>
+      </select>
+      <div class="status-pill"><div class="ws-dot" id="ws-dot"></div><span id="ws-status">Connecting...</span></div>
+      <!-- Notification Bell -->
+      <div class="bell-wrap">
+        <button class="btn-icon" onclick="toggleNotif()">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
+          <span class="bell-badge" id="bell-badge">0</span>
+        </button>
+        <div class="notif-dropdown" id="notif-dropdown">
+          <div class="notif-header">Notifications <span id="notif-count" style="font-size:11px;color:var(--muted)">0 new</span></div>
+          <div id="notif-list"><div style="padding:20px;text-align:center;color:var(--muted);font-size:12px">No notifications</div></div>
+        </div>
+      </div>
+      <button class="btn-icon" onclick="window.print()"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/></svg> Print</button>
+      <button class="btn-icon" onclick="toggleDark()"><svg viewBox="0 0 24 24" fill="currentColor" id="theme-icon"><path d="M20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12 20 8.69zM12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6zm0-10c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4z"/></svg> Theme</button>
+      <button class="btn-primary" onclick="downloadReport()"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 13v3h-2v-3H8l4-4 4 4h-3zm1-7V3.5L18.5 9H14z"/></svg> Report</button>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="alert-banner" id="alert-banner">
+      <svg viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+      <span id="alert-text">High IOP detected!</span>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" onclick="showTab('dashboard')" data-tab="dashboard">📊 Dashboard</button>
+      <button class="tab" onclick="showTab('charts')" data-tab="charts">📈 Charts</button>
+      <button class="tab" onclick="showTab('calendar')" data-tab="calendar">📅 Calendar</button>
+      <button class="tab" onclick="showTab('symptoms')" data-tab="symptoms">🩺 Symptoms</button>
+      <button class="tab" onclick="showTab('lifestyle')" data-tab="lifestyle">🏃 Lifestyle</button>
+      <button class="tab" onclick="showTab('messages')" data-tab="messages">💬 Messages</button>
+      <button class="tab" onclick="showTab('history')" data-tab="history">📋 History</button>
+    </div>
+
+    <!-- DASHBOARD TAB -->
+    <div class="tab-content active" id="tab-dashboard">
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg> Latest IOP</div>
+          <div class="stat-value" id="s-iop">--</div><div class="stat-unit">mmHg</div>
+          <div class="stat-sub" id="s-eye">-- Eye</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Risk Level</div>
+          <div style="margin-top:8px"><span class="risk-badge LOW" id="s-risk">—</span></div>
+          <div class="stat-sub" id="s-prob">Probability: —</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Avg IOP (7d)</div>
+          <div class="stat-value" id="s-avg">--</div><div class="stat-unit">mmHg average</div>
+          <div class="stat-sub" id="s-readings">-- readings</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Last Update</div>
+          <div style="font-size:18px;font-weight:700;margin:8px 0 3px" id="s-time">--:--</div>
+          <div class="stat-sub" id="s-date">--/--/----</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-head">
+            <h3>IOP Trend</h3>
+            <select id="chart-days" onchange="loadHistory()" style="font-size:11px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text2);font-family:'DM Sans',sans-serif;outline:none">
+              <option value="1">24 hours</option>
+              <option value="7" selected>7 days</option>
+              <option value="30">30 days</option>
+            </select>
+          </div>
+          <div class="card-body"><div class="chart-wrap"><canvas id="iop-chart"></canvas></div></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h3>Current Reading</h3><span class="meta" id="gauge-eye">Right Eye</span></div>
+          <div class="card-body">
+            <div class="gauge-wrap">
+              <div class="gauge-circle">
+                <svg viewBox="0 0 140 140">
+                  <circle class="gauge-bg" cx="70" cy="70" r="55"/>
+                  <circle class="gauge-fill" id="gauge-fill" cx="70" cy="70" r="55" stroke="#22c55e" stroke-dasharray="345.4" stroke-dashoffset="345.4"/>
+                </svg>
+                <div class="gauge-center"><div class="g-val" id="gauge-val">--</div><div class="g-unit">mmHg</div></div>
+              </div>
+              <span class="risk-badge LOW" id="gauge-risk">—</span>
+              <div class="thresh-row">
+                <div class="thresh-item"><div class="thresh-dot" style="background:#22c55e"></div>Normal: ≤ 18 mmHg</div>
+                <div class="thresh-item"><div class="thresh-dot" style="background:#d97706"></div>Elevated: 18–21 mmHg</div>
+                <div class="thresh-item"><div class="thresh-dot" style="background:#dc2626"></div><span id="thresh-label">High: > 21 mmHg</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-2b">
+        <div class="card">
+          <div class="card-head"><h3>Today's Medicines</h3><span class="meta" id="med-taken">0/0 taken</span></div>
+          <div class="card-body"><div class="med-list" id="med-list"><p style="font-size:12px;color:var(--muted);text-align:center;padding:10px">Loading...</p></div></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h3>Upcoming Appointments</h3></div>
+          <div class="card-body" id="appt-list"><p style="font-size:12px;color:var(--muted);text-align:center;padding:10px">No upcoming appointments</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHARTS TAB -->
+    <div class="tab-content" id="tab-charts">
+      <div class="grid-2b">
+        <div class="card">
+          <div class="card-head"><h3>Left vs Right Eye</h3></div>
+          <div class="card-body"><div class="chart-wrap"><canvas id="eye-chart"></canvas></div></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h3>Risk Distribution</h3></div>
+          <div class="card-body"><div class="chart-wrap"><canvas id="pie-chart"></canvas></div></div>
+        </div>
+      </div>
+      <div class="grid-2b" style="margin-top:14px">
+        <div class="card">
+          <div class="card-head"><h3>Weekly Averages</h3></div>
+          <div class="card-body"><div class="chart-wrap"><canvas id="weekly-chart"></canvas></div></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h3>Time-of-Day Heatmap</h3></div>
+          <div class="card-body"><canvas id="heatmap-chart" height="200"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CALENDAR TAB -->
+    <div class="tab-content" id="tab-calendar">
+      <div class="card">
+        <div class="card-head">
+          <h3>IOP Calendar</h3>
+          <span class="meta">Click a day to see readings</span>
+        </div>
+        <div class="card-body">
+          <div class="cal-nav">
+            <button class="cal-btn" onclick="calPrev()">‹</button>
+            <h4 id="cal-month-label">April 2026</h4>
+            <button class="cal-btn" onclick="calNext()">›</button>
+          </div>
+          <div class="cal-grid">
+            <div class="cal-day-label">Sun</div><div class="cal-day-label">Mon</div>
+            <div class="cal-day-label">Tue</div><div class="cal-day-label">Wed</div>
+            <div class="cal-day-label">Thu</div><div class="cal-day-label">Fri</div>
+            <div class="cal-day-label">Sat</div>
+          </div>
+          <div class="cal-grid" id="cal-days"></div>
+          <div id="cal-detail" style="margin-top:12px;padding:12px;background:var(--bg);border-radius:9px;display:none">
+            <h4 id="cal-detail-date" style="font-size:13px;margin-bottom:8px"></h4>
+            <div id="cal-detail-list"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SYMPTOMS TAB -->
+    <div class="tab-content" id="tab-symptoms">
+      <div class="card">
+        <div class="card-head"><h3>Log Symptoms</h3></div>
+        <div class="card-body">
+          <div class="symptom-grid">
+            <button class="symptom-btn" id="sym-pain" onclick="toggleSymptom('pain')">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+              Eye Pain
+            </button>
+            <button class="symptom-btn" id="sym-blur" onclick="toggleSymptom('blur')">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+              Blurriness
+            </button>
+            <button class="symptom-btn" id="sym-head" onclick="toggleSymptom('head')">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.5 2C6.81 2 3 5.81 3 10.5S6.81 19 11.5 19h.5v3c4.86-2.34 8-7 8-11.5C20 5.81 16.19 2 11.5 2zm1 14.5h-2v-2h2v2zm0-4h-2c0-3.25 3-3 3-5 0-1.1-.9-2-2-2s-2 .9-2 2h-2c0-2.21 1.79-4 4-4s4 1.79 4 4c0 2.5-3 2.75-3 5z"/></svg>
+              Headache
+            </button>
+            <button class="symptom-btn" id="sym-red" onclick="toggleSymptom('red')">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+              Redness
+            </button>
+          </div>
+          <div style="margin-top:14px">
+            <label style="font-size:11px;font-weight:600;color:var(--muted)">Severity: <span id="sev-val">3</span>/5</label>
+            <input type="range" min="1" max="5" value="3" class="severity-slider" id="sev-slider" oninput="document.getElementById('sev-val').textContent=this.value">
+          </div>
+          <div style="margin-top:10px">
+            <textarea id="sym-notes" placeholder="Additional notes..." style="width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:9px;font-size:12px;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;resize:vertical;min-height:70px;outline:none"></textarea>
+          </div>
+          <button class="btn-primary" style="margin-top:10px;width:100%;justify-content:center" onclick="logSymptom()">Log Symptoms</button>
+        </div>
+      </div>
+      <div class="card" style="margin-top:14px">
+        <div class="card-head"><h3>Symptom History</h3></div>
+        <div class="card-body" id="sym-history"><p style="font-size:12px;color:var(--muted);text-align:center">No symptoms logged</p></div>
+      </div>
+    </div>
+
+    <!-- LIFESTYLE TAB -->
+    <div class="tab-content" id="tab-lifestyle">
+      <div class="card">
+        <div class="card-head"><h3>Log Today's Lifestyle</h3></div>
+        <div class="card-body">
+          <div class="lifestyle-grid">
+            <div class="lf-input"><label>😴 Sleep Hours</label><input type="number" id="lf-sleep" placeholder="7.5" min="0" max="24" step="0.5"></div>
+            <div class="lf-input"><label>🏃 Exercise (minutes)</label><input type="number" id="lf-exercise" placeholder="30" min="0"></div>
+            <div class="lf-input"><label>😰 Stress Level (1-5)</label><input type="number" id="lf-stress" placeholder="2" min="1" max="5"></div>
+            <div class="lf-input"><label>💧 Water Intake (ml)</label><input type="number" id="lf-water" placeholder="2000" min="0"></div>
+          </div>
+          <button class="btn-primary" style="margin-top:14px;width:100%;justify-content:center" onclick="logLifestyle()">Save Today's Log</button>
+        </div>
+      </div>
+      <div class="card" style="margin-top:14px">
+        <div class="card-head"><h3>Lifestyle History</h3></div>
+        <div class="card-body"><div class="chart-wrap"><canvas id="lifestyle-chart"></canvas></div></div>
+      </div>
+    </div>
+
+    <!-- MESSAGES TAB -->
+    <div class="tab-content" id="tab-messages">
+      <div class="card">
+        <div class="card-head"><h3>Message Your Doctor</h3><span class="meta" id="msg-doctor-name">Loading...</span></div>
+        <div class="card-body">
+          <div class="msg-list" id="msg-list"><p style="font-size:12px;color:var(--muted);text-align:center;padding:20px">No messages yet. Start a conversation!</p></div>
+          <div class="msg-input-row">
+            <input class="msg-input" id="msg-input" placeholder="Type a message..." onkeydown="if(event.key==='Enter')sendMessage()">
+            <button class="btn-primary" onclick="sendMessage()"><svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg> Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HISTORY TAB -->
+    <div class="tab-content" id="tab-history">
+      <div class="card">
+        <div class="card-head"><h3>Measurement History</h3><span class="meta" id="hist-count">0 records</span></div>
+        <div class="card-body" style="padding:0">
+          <div style="overflow-x:auto;max-height:400px;overflow-y:auto">
+            <table class="htable">
+              <thead><tr><th>Date & Time</th><th>IOP</th><th>Eye</th><th>Risk</th><th>Probability</th></tr></thead>
+              <tbody id="hist-body"><tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px">Loading...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div><!-- /content -->
+</main>
+
+<script>
+const API    = 'http://localhost:8000/api';
+const WS_URL = 'ws://localhost:8000/ws';
+const token  = localStorage.getItem('token');
+const userId = localStorage.getItem('user_id');
+const uname  = localStorage.getItem('user_name') || 'Patient';
+const role   = localStorage.getItem('role');
+
+if (!token || role !== 'patient') { window.location.href = 'index.html'; }
+
+// ── i18n ──────────────────────────────────────────────────────────────────────
+const i18n = {
+  en: { dashboard:'Dashboard', charts:'Charts', calendar:'Calendar',
+        symptoms:'Symptoms', lifestyle:'Lifestyle', messages:'Messages', history:'History',
+        latestIOP:'Latest IOP', riskLevel:'Risk Level', avgIOP:'Avg IOP (7d)', lastUpdate:'Last Update',
+        live:'Live', connecting:'Connecting...', signOut:'Sign out', print:'Print', report:'Report' },
+  ta: { dashboard:'டாஷ்போர்டு', charts:'விளக்கப்படங்கள்', calendar:'நாட்காட்டி',
+        symptoms:'அறிகுறிகள்', lifestyle:'வாழ்க்கை முறை', messages:'செய்திகள்', history:'வரலாறு',
+        latestIOP:'சமீபத்திய IOP', riskLevel:'அபாய நிலை', avgIOP:'சராசரி IOP', lastUpdate:'கடைசி புதுப்பிப்பு',
+        live:'நேரடி', connecting:'இணைக்கிறது...', print:'அச்சிடு', report:'அறிக்கை' },
+  hi: { dashboard:'डैशबोर्ड', charts:'चार्ट', calendar:'कैलेंडर',
+        symptoms:'लक्षण', lifestyle:'जीवनशैली', messages:'संदेश', history:'इतिहास',
+        latestIOP:'नवीनतम IOP', riskLevel:'जोखिम स्तर', avgIOP:'औसत IOP', lastUpdate:'अंतिम अपडेट',
+        live:'लाइव', connecting:'जोड़ रहे हैं...', print:'प्रिंट', report:'रिपोर्ट' }
+};
+let lang = 'en';
+
+function setLanguage(l) {
+  lang = l;
+  const t = i18n[l] || i18n.en;
+  document.querySelectorAll('[data-tab]').forEach(btn => {
+    const key = btn.dataset.tab;
+    if (t[key]) btn.textContent = (btn.textContent.split(' ')[0] || '') + ' ' + t[key];
+  });
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+document.getElementById('user-name-sb').textContent = uname;
+document.getElementById('user-avatar-sb').textContent = uname.charAt(0).toUpperCase();
+document.getElementById('current-date').textContent = new Date().toLocaleDateString('en-IN',
+  {weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+// Load hospital config
+fetch(`${API.replace('/api','')}/api/config`).then(r=>r.json()).then(c=>{
+  document.getElementById('sb-hospital').textContent = c.hospital_name || 'GlaucoMonitor';
+  document.getElementById('thresh-label').textContent = `High: > ${c.iop_threshold} mmHg`;
+  window._iopThreshold = c.iop_threshold || 21;
+}).catch(()=>{ window._iopThreshold = 21; });
+
+// ── Theme ─────────────────────────────────────────────────────────────────────
+function toggleDark() {
+  const html = document.documentElement;
+  html.dataset.theme = html.dataset.theme === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('theme', html.dataset.theme);
+}
+if (localStorage.getItem('theme') === 'dark') document.documentElement.dataset.theme = 'dark';
+
+// ── Sidebar ───────────────────────────────────────────────────────────────────
+function toggleSidebar() {
+  const sb = document.getElementById('sidebar');
+  const mn = document.getElementById('main');
+  if (window.innerWidth <= 900) {
+    sb.classList.toggle('mobile-open');
+  } else {
+    sb.classList.toggle('collapsed');
+    mn.classList.toggle('full');
+  }
+}
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+function showTab(name) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + name)?.classList.add('active');
+  document.querySelector(`[data-tab="${name}"]`)?.classList.add('active');
+  document.getElementById('page-title').textContent = name.charAt(0).toUpperCase() + name.slice(1);
+  if (name === 'charts')   initAllCharts();
+  if (name === 'calendar') renderCalendar();
+  if (name === 'messages') loadMessages();
+  if (name === 'symptoms') loadSymptoms();
+  if (name === 'lifestyle') loadLifestyleChart();
+}
+
+// ── Notifications ─────────────────────────────────────────────────────────────
+const notifications = [];
+function toggleNotif() { document.getElementById('notif-dropdown').classList.toggle('open'); }
+function addNotif(title, type='info') {
+  notifications.unshift({title, type, time: new Date().toLocaleTimeString()});
+  const badge = document.getElementById('bell-badge');
+  badge.textContent = notifications.length;
+  badge.classList.add('show');
+  const list = document.getElementById('notif-list');
+  const color = type==='high' ? '#fee2e2' : type==='medium' ? '#fef3c7' : '#f0fdf4';
+  list.innerHTML = notifications.slice(0,20).map(n =>
+    `<div class="notif-item unread" style="border-left-color:${n.type==='high'?'var(--rH)':n.type==='medium'?'var(--rM)':'var(--rL)'}">
+      <div class="ni-title">${n.title}</div>
+      <div class="ni-time">${n.time}</div>
+    </div>`
+  ).join('');
+  document.getElementById('notif-count').textContent = notifications.length + ' new';
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.bell-wrap')) document.getElementById('notif-dropdown').classList.remove('open');
+});
+
+// ── Charts ────────────────────────────────────────────────────────────────────
+let iopChart, eyeChart, pieChart, weeklyChart, lifestyleChart;
+let chartLabels=[], chartData=[], allMeasurements=[];
+
+function initMainChart() {
+  const ctx = document.getElementById('iop-chart').getContext('2d');
+  iopChart = new Chart(ctx, {
+    type:'line', data:{labels:chartLabels, datasets:[{
+      label:'IOP (mmHg)', data:chartData,
+      borderColor:'#14532d', backgroundColor:'rgba(20,83,45,.08)',
+      borderWidth:2.5, pointRadius:3, pointBackgroundColor:'#14532d',
+      pointBorderColor:'white', pointBorderWidth:2, fill:true, tension:.4
+    }]},
+    options:{responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        y:{min:5,max:35, grid:{color:'rgba(0,0,0,.04)'}, ticks:{font:{size:10},color:'#94a3b8'}},
+        x:{grid:{display:false}, ticks:{font:{size:10},color:'#94a3b8',maxTicksLimit:8}}
+      }}
+  });
+}
+
+function initAllCharts() {
+  if (!allMeasurements.length) return;
+
+  // Left vs Right eye
+  const leftData  = allMeasurements.filter(m=>m.eye==='LEFT').slice(0,20).reverse();
+  const rightData = allMeasurements.filter(m=>m.eye==='RIGHT').slice(0,20).reverse();
+  if (!eyeChart) {
+    const ctx2 = document.getElementById('eye-chart').getContext('2d');
+    eyeChart = new Chart(ctx2, {type:'line', data:{
+      labels: rightData.map((_,i)=>`Reading ${i+1}`),
+      datasets:[
+        {label:'Right Eye', data:rightData.map(m=>m.iop_value), borderColor:'#14532d', tension:.4, fill:false},
+        {label:'Left Eye',  data:leftData.map(m=>m.iop_value),  borderColor:'#1d4ed8', tension:.4, fill:false}
+      ]},
+      options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'top',labels:{font:{size:10}}}},
+        scales:{y:{min:5,max:35,ticks:{font:{size:10}}}, x:{ticks:{font:{size:10}}}}}
+    });
+  }
+
+  // Risk pie
+  const risks = {LOW:0,MEDIUM:0,HIGH:0};
+  allMeasurements.forEach(m=>risks[m.risk_level]=(risks[m.risk_level]||0)+1);
+  if (!pieChart) {
+    const ctx3 = document.getElementById('pie-chart').getContext('2d');
+    pieChart = new Chart(ctx3, {type:'doughnut', data:{
+      labels:['LOW','MEDIUM','HIGH'],
+      datasets:[{data:[risks.LOW,risks.MEDIUM,risks.HIGH],
+        backgroundColor:['#dcfce7','#fef3c7','#fee2e2'],
+        borderColor:['#16a34a','#d97706','#dc2626'], borderWidth:2}]},
+      options:{responsive:true, maintainAspectRatio:false,
+        plugins:{legend:{position:'bottom',labels:{font:{size:11}}}}}
+    });
+  }
+
+  // Weekly avg bar
+  const weeks = {};
+  allMeasurements.forEach(m=>{
+    const d = new Date(m.timestamp);
+    const wk = `W${Math.ceil(d.getDate()/7)} ${d.toLocaleString('default',{month:'short'})}`;
+    if (!weeks[wk]) weeks[wk]={sum:0,cnt:0};
+    weeks[wk].sum += m.iop_value; weeks[wk].cnt++;
+  });
+  const wkLabels = Object.keys(weeks).slice(-6);
+  const wkData   = wkLabels.map(w=>(weeks[w].sum/weeks[w].cnt).toFixed(1));
+  if (!weeklyChart) {
+    const ctx4 = document.getElementById('weekly-chart').getContext('2d');
+    weeklyChart = new Chart(ctx4, {type:'bar', data:{
+      labels:wkLabels,
+      datasets:[{label:'Avg IOP', data:wkData,
+        backgroundColor:wkData.map(v=>v>21?'rgba(220,38,38,.7)':v>18?'rgba(217,119,6,.7)':'rgba(20,83,45,.7)'),
+        borderRadius:6}]},
+      options:{responsive:true, maintainAspectRatio:false,
+        plugins:{legend:{display:false}},
+        scales:{y:{min:5,max:35,ticks:{font:{size:10}}}, x:{ticks:{font:{size:10}}}}}
+    });
+  }
+
+  // Heatmap (hour of day)
+  const hourly = Array(24).fill(0).map(()=>({sum:0,cnt:0}));
+  allMeasurements.forEach(m=>{
+    const h = new Date(m.timestamp).getHours();
+    hourly[h].sum += m.iop_value; hourly[h].cnt++;
+  });
+  const hCtx = document.getElementById('heatmap-chart').getContext('2d');
+  const hData = hourly.map(h=>h.cnt>0?(h.sum/h.cnt).toFixed(1):null);
+  if (hCtx && !window._heatmapDone) {
+    window._heatmapDone = true;
+    new Chart(hCtx, {type:'bar', data:{
+      labels:Array.from({length:24},(_,i)=>`${i}:00`),
+      datasets:[{label:'Avg IOP by Hour', data:hData,
+        backgroundColor:hData.map(v=>!v?'rgba(0,0,0,.05)':v>21?'rgba(220,38,38,.7)':v>18?'rgba(217,119,6,.7)':'rgba(20,83,45,.5)'),
+        borderRadius:4}]},
+      options:{responsive:true, maintainAspectRatio:false, indexAxis:'x',
+        plugins:{legend:{display:false}},
+        scales:{y:{min:5,max:35,ticks:{font:{size:9}}}, x:{ticks:{font:{size:9},maxRotation:45}}}}
+    });
+  }
+}
+
+// ── Load History ──────────────────────────────────────────────────────────────
+async function loadHistory() {
+  const days = document.getElementById('chart-days')?.value || 7;
+  try {
+    const res  = await fetch(`${API}/measurements/history?days=${days}&limit=200`,
+                             {headers:{Authorization:`Bearer ${token}`}});
+    const data = await res.json();
+    allMeasurements = data.measurements || [];
+
+    const rev = [...allMeasurements].reverse();
+    chartLabels = rev.map(m=>{
+      const d = new Date(m.timestamp);
+      return d.toLocaleDateString('en-IN',{month:'short',day:'numeric'})+' '+
+             d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+    });
+    chartData = rev.map(m=>m.iop_value);
+
+    if (iopChart) { iopChart.data.labels=chartLabels; iopChart.data.datasets[0].data=chartData; iopChart.update(); }
+
+    if (data.summary) {
+      document.getElementById('s-avg').textContent      = data.summary.avg_iop || '--';
+      document.getElementById('s-readings').textContent = `${data.summary.total_measurements} readings`;
+    }
+    updateHistoryTable(allMeasurements);
+    document.getElementById('hist-count').textContent = `${allMeasurements.length} records`;
+    if (allMeasurements.length) updateLatest(allMeasurements[0]);
+
+    // Build calendar data
+    window._calData = {};
+    allMeasurements.forEach(m=>{
+      const d = new Date(m.timestamp).toDateString();
+      if (!window._calData[d]) window._calData[d] = [];
+      window._calData[d].push(m);
+    });
+  } catch(e) { console.error('History error:', e); }
+}
+
+function updateHistoryTable(ms) {
+  const tb = document.getElementById('hist-body');
+  if (!ms.length) { tb.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:20px">No records</td></tr>'; return; }
+  tb.innerHTML = ms.slice(0,50).map(m=>{
+    const d   = new Date(m.timestamp);
+    const ds  = d.toLocaleDateString('en-IN',{month:'short',day:'numeric',year:'2-digit'});
+    const ts  = d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+    const cls = m.iop_value>21?'iop-high':m.iop_value>18?'iop-med':'iop-low';
+    return `<tr>
+      <td>${ds} ${ts}</td>
+      <td class="${cls}">${m.iop_value}</td>
+      <td>${m.eye}</td>
+      <td><span class="risk-badge ${m.risk_level}">${m.risk_level}</span></td>
+      <td>${(m.risk_probability*100).toFixed(0)}%</td>
+    </tr>`;
+  }).join('');
+}
+
+function updateLatest(m) {
+  document.getElementById('s-iop').textContent    = m.iop_value;
+  document.getElementById('s-eye').textContent    = `${m.eye} Eye`;
+  document.getElementById('gauge-val').textContent = m.iop_value;
+  document.getElementById('gauge-eye').textContent = `${m.eye} Eye`;
+  ['s-risk','gauge-risk'].forEach(id=>{
+    const el = document.getElementById(id);
+    el.textContent = m.risk_level; el.className = `risk-badge ${m.risk_level}`;
+  });
+  document.getElementById('s-prob').textContent = `Probability: ${(m.risk_probability*100).toFixed(0)}%`;
+  const d = new Date(m.timestamp);
+  document.getElementById('s-time').textContent = d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('s-date').textContent = d.toLocaleDateString('en-IN',{month:'short',day:'numeric',year:'numeric'});
+
+  const circ  = 345.4;
+  const pct   = Math.min(m.iop_value/35,1);
+  const fill  = document.getElementById('gauge-fill');
+  fill.style.strokeDashoffset = circ*(1-pct);
+  fill.style.stroke = m.iop_value>21?'#dc2626':m.iop_value>18?'#d97706':'#22c55e';
+
+  const thresh = window._iopThreshold || 21;
+  if (m.iop_value > thresh) {
+    const ab = document.getElementById('alert-banner');
+    ab.classList.add('show');
+    document.getElementById('alert-text').textContent =
+      `⚠️ High IOP: ${m.iop_value} mmHg (${m.risk_level} risk). Consult your doctor immediately.`;
+    addNotif(`🚨 High IOP: ${m.iop_value} mmHg detected`, 'high');
+  } else {
+    document.getElementById('alert-banner').classList.remove('show');
+  }
+}
+
+// ── Calendar ──────────────────────────────────────────────────────────────────
+let calYear = new Date().getFullYear(), calMonth = new Date().getMonth();
+function renderCalendar() {
+  const months = ['January','February','March','April','May','June',
+                  'July','August','September','October','November','December'];
+  document.getElementById('cal-month-label').textContent = `${months[calMonth]} ${calYear}`;
+  const first = new Date(calYear, calMonth, 1).getDay();
+  const days  = new Date(calYear, calMonth+1, 0).getDate();
+  const today = new Date();
+  const grid  = document.getElementById('cal-days');
+  const calData = window._calData || {};
+  let html = '';
+  for (let i=0;i<first;i++) html += '<div class="cal-day empty"></div>';
+  for (let d=1;d<=days;d++) {
+    const dt   = new Date(calYear, calMonth, d).toDateString();
+    const recs = calData[dt] || [];
+    let cls = 'cal-day';
+    if (recs.length) {
+      const risks = recs.map(r=>r.risk_level);
+      cls += risks.includes('HIGH')?' HIGH':risks.includes('MEDIUM')?' MEDIUM':' LOW';
+      cls += ' has-data';
+    }
+    if (d===today.getDate()&&calMonth===today.getMonth()&&calYear===today.getFullYear()) cls+=' today';
+    html += `<div class="${cls}" onclick="showCalDay('${dt}',${d})" title="${recs.length} readings">${d}</div>`;
+  }
+  grid.innerHTML = html;
+}
+function calPrev() { calMonth--; if(calMonth<0){calMonth=11;calYear--;} renderCalendar(); }
+function calNext() { calMonth++; if(calMonth>11){calMonth=0;calYear++;} renderCalendar(); }
+function showCalDay(dt, d) {
+  const recs   = (window._calData||{})[dt]||[];
+  const detail = document.getElementById('cal-detail');
+  const list   = document.getElementById('cal-detail-list');
+  document.getElementById('cal-detail-date').textContent = dt + ` (${recs.length} readings)`;
+  if (!recs.length) { list.innerHTML='<p style="font-size:12px;color:var(--muted)">No readings this day</p>'; }
+  else {
+    list.innerHTML = recs.map(m=>{
+      const t = new Date(m.timestamp).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+      return `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px">
+        <span>${t} — ${m.eye}</span>
+        <span><b>${m.iop_value} mmHg</b> <span class="risk-badge ${m.risk_level}" style="font-size:10px">${m.risk_level}</span></span>
+      </div>`;
+    }).join('');
+  }
+  detail.style.display='block';
+}
+
+// ── Patient profile ───────────────────────────────────────────────────────────
+async function loadProfile() {
+  try {
+    const res  = await fetch(`${API}/patients/${userId}`,{headers:{Authorization:`Bearer ${token}`}});
+    const data = await res.json();
+    renderMedicines(data.medicines||[]);
+    if (data.photo) {
+      const av = document.getElementById('user-avatar-sb');
+      av.innerHTML = `<img src="${data.photo}" alt="photo">`;
+    }
+    // Load appointments
+    loadAppointments();
+  } catch(e) { console.error(e); }
+}
+
+function renderMedicines(meds) {
+  const taken = meds.filter(m=>m.taken_today).length;
+  document.getElementById('med-taken').textContent = `${taken}/${meds.length} taken`;
+  const list = document.getElementById('med-list');
+  if (!meds.length) { list.innerHTML='<p style="font-size:12px;color:var(--muted);text-align:center;padding:10px">No medicines assigned</p>'; return; }
+  list.innerHTML = meds.map(m=>`
+    <div class="med-item">
+      <div class="med-icon"><svg viewBox="0 0 24 24"><path d="M6.5 10h-2v7h2v-7zm6 0h-2v7h2v-7zm8.5 9H2v2h19v-2zm-2.5-9h-2v7h2v-7zM11.5 1L2 6v2h19V6l-9.5-5z"/></svg></div>
+      <div class="med-info"><div class="med-name">${m.name} <span style="font-weight:400;color:var(--muted)">${m.dosage}</span></div>
+      <div class="med-detail">${{morning:'🌅 Morning',evening:'🌙 Evening',twice_daily:'⏰ Twice Daily'}[m.frequency]||m.frequency}</div></div>
+      <button class="med-check ${m.taken_today?'done':''}" onclick="markMed('${m.id}',this)" ${m.taken_today?'disabled':''}>
+        <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+      </button>
+    </div>`).join('');
+}
+
+async function markMed(id, btn) {
+  btn.classList.add('done'); btn.disabled=true;
+  await fetch(`${API}/patients/medicines/${id}/taken`,{method:'PUT',headers:{Authorization:`Bearer ${token}`}});
+  const done  = document.querySelectorAll('.med-check.done').length;
+  const total = document.querySelectorAll('.med-check').length;
+  document.getElementById('med-taken').textContent = `${done}/${total} taken`;
+}
+
+async function loadAppointments() {
+  try {
+    const res  = await fetch(`${API}/messages/appointments/${userId}`,{headers:{Authorization:`Bearer ${token}`}});
+    const data = await res.json();
+    const appts = data.appointments || [];
+    const el    = document.getElementById('appt-list');
+    if (!appts.length) { el.innerHTML='<p style="font-size:12px;color:var(--muted);text-align:center;padding:10px">No upcoming appointments</p>'; return; }
+    el.innerHTML = appts.map(a=>{
+      const d = new Date(a.scheduled_at).toLocaleString('en-IN',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+      return `<div style="padding:9px 12px;background:var(--bg);border-radius:9px;border:1px solid var(--border);margin-bottom:7px">
+        <div style="font-size:12px;font-weight:600">${a.other_name}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">📅 ${d}</div>
+        ${a.meet_link?`<a href="${a.meet_link}" target="_blank" style="font-size:11px;color:var(--sb);text-decoration:none">🎥 Join Meeting</a>`:''}
+      </div>`;
+    }).join('');
+  } catch(e) {}
+}
+
+// ── Photo upload ──────────────────────────────────────────────────────────────
+async function uploadPhoto(input) {
+  const file = input.files[0]; if (!file) return;
+  const form = new FormData(); form.append('file', file);
+  const res  = await fetch(`${API}/patients/${userId}/photo`,
+    {method:'POST', headers:{Authorization:`Bearer ${token}`}, body:form});
+  const data = await res.json();
+  if (data.photo) {
+    const av = document.getElementById('user-avatar-sb');
+    av.innerHTML = `<img src="${data.photo}" alt="photo" style="width:100%;height:100%;object-fit:cover">`;
+  }
+}
+
+// ── Symptoms ──────────────────────────────────────────────────────────────────
+const symState = {pain:false, blur:false, head:false, red:false};
+function toggleSymptom(s) {
+  symState[s] = !symState[s];
+  document.getElementById('sym-'+s).classList.toggle('active', symState[s]);
+}
+async function logSymptom() {
+  const body = {
+    eye_pain: symState.pain, blurriness: symState.blur,
+    headache: symState.head, redness: symState.red,
+    severity: parseInt(document.getElementById('sev-slider').value),
+    notes: document.getElementById('sym-notes').value,
+  };
+  await fetch(`${API}/messages/symptoms`,{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify(body)});
+  Object.keys(symState).forEach(k=>{ symState[k]=false; document.getElementById('sym-'+k)?.classList.remove('active'); });
+  document.getElementById('sym-notes').value='';
+  alert('✅ Symptoms logged successfully!');
+  loadSymptoms();
+}
+async function loadSymptoms() {
+  try {
+    const res  = await fetch(`${API}/messages/symptoms/${userId}`,{headers:{Authorization:`Bearer ${token}`}});
+    const data = await res.json();
+    const el   = document.getElementById('sym-history');
+    const syms = data.symptoms || [];
+    if (!syms.length) { el.innerHTML='<p style="font-size:12px;color:var(--muted);text-align:center">No symptoms logged</p>'; return; }
+    el.innerHTML = syms.map(s=>{
+      const flags = [];
+      if (s.eye_pain)   flags.push('👁️ Eye Pain');
+      if (s.blurriness) flags.push('🌀 Blurry');
+      if (s.headache)   flags.push('🤕 Headache');
+      if (s.redness)    flags.push('🔴 Redness');
+      const d = new Date(s.timestamp).toLocaleDateString('en-IN',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+      return `<div style="padding:9px 12px;background:var(--bg);border-radius:9px;border:1px solid var(--border);margin-bottom:7px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <span style="font-size:11px;color:var(--muted)">${d}</span>
+          <span style="font-size:11px;font-weight:600">Severity: ${'★'.repeat(s.severity)}${'☆'.repeat(5-s.severity)}</span>
+        </div>
+        <div style="font-size:12px;font-weight:600">${flags.join(' · ')||'General discomfort'}</div>
+        ${s.notes?`<div style="font-size:11px;color:var(--muted);margin-top:3px">${s.notes}</div>`:''}
+      </div>`;
+    }).join('');
+  } catch(e) {}
+}
+
+// ── Lifestyle ─────────────────────────────────────────────────────────────────
+async function logLifestyle() {
+  const body = {
+    sleep_hours:      parseFloat(document.getElementById('lf-sleep').value)||null,
+    exercise_minutes: parseInt(document.getElementById('lf-exercise').value)||null,
+    stress_level:     parseInt(document.getElementById('lf-stress').value)||null,
+    water_intake_ml:  parseInt(document.getElementById('lf-water').value)||null,
+  };
+  await fetch(`${API}/messages/lifestyle`,{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify(body)});
+  alert('✅ Lifestyle logged!');
+  loadLifestyleChart();
+}
+async function loadLifestyleChart() {
+  try {
+    const res  = await fetch(`${API}/messages/lifestyle/${userId}`,{headers:{Authorization:`Bearer ${token}`}});
+    const data = await res.json();
+    const entries = (data.entries||[]).slice(0,14).reverse();
+    if (!lifestyleChart) {
+      const ctx = document.getElementById('lifestyle-chart').getContext('2d');
+      lifestyleChart = new Chart(ctx, {type:'line', data:{
+        labels: entries.map(e=>new Date(e.timestamp).toLocaleDateString('en-IN',{month:'short',day:'numeric'})),
+        datasets:[
+          {label:'Sleep (hrs)', data:entries.map(e=>e.sleep_hours), borderColor:'#7c3aed', tension:.4, fill:false},
+          {label:'Stress (×5)',  data:entries.map(e=>e.stress_level?e.stress_level*2:null), borderColor:'#dc2626', tension:.4, fill:false},
+        ]},
+        options:{responsive:true, maintainAspectRatio:false,
+          plugins:{legend:{position:'top',labels:{font:{size:10}}}},
+          scales:{y:{min:0,max:15,ticks:{font:{size:10}}}, x:{ticks:{font:{size:10}}}}}
+      });
+    }
+  } catch(e) {}
+}
+
+// ── Messages ──────────────────────────────────────────────────────────────────
+let doctorId = null;
+async function loadMessages() {
+  // First get doctor ID
+  try {
+    const res  = await fetch(`${API}/patients/${userId}`,{headers:{Authorization:`Bearer ${token}`}});
+    const data = await res.json();
+    doctorId   = data.assigned_doctor_id;
+    if (!doctorId) {
+      // fallback: get first doctor
+      const r2 = await fetch(`${API}/auth/me`,{headers:{Authorization:`Bearer ${token}`}});
+    }
+  } catch(e) {}
+
+  if (!doctorId) {
+    document.getElementById('msg-list').innerHTML = '<p style="font-size:12px;color:var(--muted);text-align:center;padding:20px">No doctor assigned yet. Contact your clinic.</p>';
+    return;
+  }
+
+  try {
+    const res  = await fetch(`${API}/messages/thread/${doctorId}`,{headers:{Authorization:`Bearer ${token}`}});
+    const data = await res.json();
+    const msgs = data.messages || [];
+    const list = document.getElementById('msg-list');
+    if (!msgs.length) { list.innerHTML='<p style="font-size:12px;color:var(--muted);text-align:center;padding:20px">No messages yet.</p>'; return; }
+    list.innerHTML = msgs.map(m=>`
+      <div style="display:flex;flex-direction:column;align-items:${m.mine?'flex-end':'flex-start'}">
+        <div class="msg-bubble ${m.mine?'mine':'theirs'}">${m.content}</div>
+        <div class="msg-time">${new Date(m.timestamp).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</div>
+      </div>`).join('');
+    list.scrollTop = list.scrollHeight;
+  } catch(e) {}
+}
+
+async function sendMessage() {
+  const input   = document.getElementById('msg-input');
+  const content = input.value.trim();
+  if (!content || !doctorId) return;
+  input.value = '';
+  await fetch(`${API}/messages/send`,{method:'POST',
+    headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},
+    body:JSON.stringify({to_user_id:doctorId, content})});
+  loadMessages();
+}
+
+// ── WebSocket ─────────────────────────────────────────────────────────────────
+let ws;
+function connectWS() {
+  ws = new WebSocket(`${WS_URL}/${userId}`);
+  ws.onopen  = ()=>{ document.getElementById('ws-status').textContent='Live'; document.getElementById('ws-dot').style.background='#22c55e'; };
+  ws.onmessage = e=>{
+    const msg = JSON.parse(e.data);
+    if (msg.type==='new_measurement') {
+      const m = msg.data;
+      updateLatest(m);
+      chartLabels.push(new Date(m.timestamp).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}));
+      chartData.push(m.iop_value);
+      if (chartLabels.length>50){chartLabels.shift();chartData.shift();}
+      if (iopChart){iopChart.data.labels=chartLabels;iopChart.data.datasets[0].data=chartData;iopChart.update('active');}
+      allMeasurements.unshift(m);
+      updateHistoryTable(allMeasurements);
+    }
+  };
+  ws.onclose = ()=>{ document.getElementById('ws-status').textContent='Reconnecting...'; document.getElementById('ws-dot').style.background='#d97706'; setTimeout(connectWS,3000); };
+}
+
+// ── Report ────────────────────────────────────────────────────────────────────
+async function downloadReport() {
+  const btn = event.target.closest('button');
+  btn.textContent='⏳ Generating...'; btn.disabled=true;
+  try {
+    const res  = await fetch(`${API}/reports/download/${userId}?days=30`,{headers:{Authorization:`Bearer ${token}`}});
+    const blob = await res.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a'); a.href=url;
+    a.download = `IOP_Report_${new Date().toISOString().slice(0,10)}.pdf`; a.click();
+    URL.revokeObjectURL(url);
+  } catch(e){ alert('Error generating report'); }
+  finally{ btn.innerHTML='<svg viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 13v3h-2v-3H8l4-4 4 4h-3zm1-7V3.5L18.5 9H14z"/></svg> Report'; btn.disabled=false; }
+}
+
+function logout() { localStorage.clear(); window.location.href='index.html'; }
+
+// ── Bootstrap ─────────────────────────────────────────────────────────────────
+(async()=>{
+  initMainChart();
+  await Promise.all([loadHistory(), loadProfile()]);
+  connectWS();
+  document.getElementById('loader').style.opacity='0';
+  setTimeout(()=>document.getElementById('loader').style.display='none',300);
+})();
+</script>
+</body>
+</html>

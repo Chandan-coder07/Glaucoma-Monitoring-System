@@ -1,0 +1,70 @@
+# ─── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# ─── Virtual Environment (NEVER push this) ────────────────────────────────────
+venv/
+env/
+.env
+.venv
+ENV/
+backend/venv/
+
+# ─── Environment Variables (NEVER push — contains passwords) ─────────────────
+.env
+.env.local
+.env.production
+.env.staging
+backend/.env
+*.env
+
+# ─── ML Model (auto-generated on first run) ───────────────────────────────────
+backend/ml/glaucoma_model.pkl
+*.pkl
+*.joblib
+
+# ─── macOS ────────────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ─── IDE / Editor ─────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+
+# ─── Logs ────────────────────────────────────────────────────────────────────
+*.log
+logs/
+npm-debug.log*
+
+# ─── Docker volumes ───────────────────────────────────────────────────────────
+mongo_data/
+
+# ─── Build artifacts ──────────────────────────────────────────────────────────
+dist/
+build/
+*.egg-info/
+.eggs/
+
+# ─── Testing ─────────────────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ─── Arduino / ESP32 ─────────────────────────────────────────────────────────
+esp32/build/
+esp32/.pio/

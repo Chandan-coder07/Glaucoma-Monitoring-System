@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GlaucoMonitor — Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green-900: #14532d;
+      --green-800: #166534;
+      --green-700: #15803d;
+      --green-600: #16a34a;
+      --green-500: #22c55e;
+      --green-100: #dcfce7;
+      --green-50:  #f0fdf4;
+      --white:     #ffffff;
+      --gray-900:  #111827;
+      --gray-700:  #374151;
+      --gray-500:  #6b7280;
+      --gray-200:  #e5e7eb;
+      --gray-100:  #f3f4f6;
+      --red:       #dc2626;
+      --shadow-lg: 0 10px 40px rgba(0,0,0,0.12);
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: linear-gradient(135deg, #0f3d1e 0%, #14532d 40%, #166534 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow-y: auto;
+      padding: 20px 0;
+    }
+
+    /* Decorative circles */
+    body::before, body::after {
+      content: '';
+      position: fixed;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.03);
+    }
+    body::before {
+      width: 600px; height: 600px;
+      top: -200px; right: -100px;
+    }
+    body::after {
+      width: 400px; height: 400px;
+      bottom: -150px; left: -100px;
+    }
+
+    .login-card {
+      background: var(--white);
+      border-radius: 20px;
+      padding: 48px 40px;
+      width: 420px;
+      box-shadow: 0 25px 80px rgba(0,0,0,0.3);
+      position: relative;
+      z-index: 1;
+      animation: slideUp 0.5s ease;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .login-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+
+    .login-logo .eye-icon {
+      width: 48px; height: 48px;
+      background: var(--green-900);
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .login-logo .eye-icon svg {
+      width: 28px; height: 28px; fill: white;
+    }
+
+    .login-logo h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 22px;
+      color: var(--green-900);
+      line-height: 1.1;
+    }
+
+    .login-logo span {
+      font-size: 12px;
+      color: var(--gray-500);
+      font-weight: 400;
+    }
+
+    h2 {
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--gray-900);
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      color: var(--gray-500);
+      font-size: 14px;
+      margin-bottom: 28px;
+    }
+
+    .demo-box {
+      background: var(--green-50);
+      border: 1px solid var(--green-100);
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 24px;
+      font-size: 12px;
+      color: var(--green-800);
+    }
+
+    .demo-box strong { display: block; margin-bottom: 4px; color: var(--green-900); }
+    .demo-box span { display: block; margin-top: 2px; }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--gray-700);
+      margin-bottom: 6px;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1.5px solid var(--gray-200);
+      border-radius: 10px;
+      font-size: 14px;
+      font-family: 'DM Sans', sans-serif;
+      color: var(--gray-900);
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: var(--green-600);
+      box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.12);
+    }
+
+    .btn-login {
+      width: 100%;
+      padding: 14px;
+      background: var(--green-900);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      font-family: 'DM Sans', sans-serif;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      margin-top: 8px;
+    }
+
+    .btn-login:hover { background: var(--green-800); }
+    .btn-login:active { transform: scale(0.99); }
+    .btn-login:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .error-msg {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: var(--red);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .toggle-form {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 13px;
+      color: var(--gray-500);
+    }
+
+    .toggle-form a {
+      color: var(--green-700);
+      text-decoration: none;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .register-fields { display: none; }
+
+    .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<div class="login-card">
+  <div class="login-logo">
+    <div class="eye-icon">
+      <svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+    </div>
+    <div>
+      <h1>GlaucoMonitor</h1>
+      <span>IOP Monitoring System</span>
+    </div>
+  </div>
+
+  <h2 id="form-title">Welcome back</h2>
+  <p class="subtitle" id="form-subtitle">Sign in to your account to continue</p>
+
+  <div class="demo-box">
+    <strong>🔬 Demo Credentials</strong>
+    <span>Doctor: doctor@glaucoma.demo / doctor123</span>
+    <span>Patient: patient@glaucoma.demo / patient123</span>
+  </div>
+
+  <div class="error-msg" id="error-msg"></div>
+
+  <div id="register-fields" class="register-fields">
+    <div class="form-group">
+      <label>Full Name</label>
+      <input type="text" id="reg-name" placeholder="Dr. Jane Smith" />
+    </div>
+    <div class="form-group">
+      <label>Role</label>
+      <select id="reg-role" style="width:100%;padding:12px 14px;border:1.5px solid #e5e7eb;border-radius:10px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none;color:#111827;">
+        <option value="patient">Patient</option>
+        <option value="doctor">Doctor</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Age</label>
+      <input type="number" id="reg-age" placeholder="55" min="1" max="120" />
+    </div>
+    <div class="form-group">
+      <label>Cornea Thickness (μm)</label>
+      <input type="number" id="reg-cornea" placeholder="540" min="400" max="700" />
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label>Email Address</label>
+    <input type="email" id="email" placeholder="doctor@hospital.com" />
+  </div>
+
+  <div class="form-group">
+    <label>Password</label>
+    <input type="password" id="password" placeholder="••••••••" />
+  </div>
+
+  <button class="btn-login" id="submit-btn" onclick="handleSubmit()">Sign In</button>
+
+  <div class="toggle-form">
+    <span id="toggle-text">Don't have an account?</span>
+    <a onclick="toggleForm()" id="toggle-link"> Sign up</a>
+  </div>
+</div>
+
+<script>
+  const API = 'http://localhost:8000/api';
+
+  let isRegister = false;
+
+  function toggleForm() {
+    isRegister = !isRegister;
+    document.getElementById('form-title').textContent = isRegister ? 'Create account' : 'Welcome back';
+    document.getElementById('form-subtitle').textContent = isRegister
+      ? 'Start monitoring IOP today' : 'Sign in to your account to continue';
+    document.getElementById('register-fields').style.display = isRegister ? 'block' : 'none';
+    document.getElementById('submit-btn').textContent = isRegister ? 'Create Account' : 'Sign In';
+    document.getElementById('toggle-text').textContent = isRegister ? 'Already have an account?' : "Don't have an account?";
+    document.getElementById('toggle-link').textContent = isRegister ? ' Sign in' : ' Sign up';
+    hideError();
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('error-msg');
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  function hideError() {
+    document.getElementById('error-msg').style.display = 'none';
+  }
+
+  async function handleSubmit() {
+    hideError();
+    const btn = document.getElementById('submit-btn');
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+
+    if (!email || !password) { showError('Please fill in all fields.'); return; }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>' + (isRegister ? 'Creating...' : 'Signing in...');
+
+    try {
+      let url, body;
+
+      if (isRegister) {
+        url = `${API}/auth/register`;
+        body = {
+          name: document.getElementById('reg-name').value.trim(),
+          email, password,
+          role: document.getElementById('reg-role').value,
+          age: parseInt(document.getElementById('reg-age').value) || 60,
+          cornea_thickness: parseFloat(document.getElementById('reg-cornea').value) || 540,
+        };
+      } else {
+        url = `${API}/auth/login`;
+        body = { email, password };
+      }
+
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        showError(data.detail || 'Authentication failed');
+        return;
+      }
+
+      // Store auth data
+      localStorage.setItem('token', data.access_token);
+      localStorage.setItem('role', data.role);
+      localStorage.setItem('user_id', data.user_id);
+      localStorage.setItem('user_name', data.name);
+
+      // Redirect to appropriate dashboard
+      window.location.href = data.role === 'doctor' ? 'doctor.html' : 'patient.html';
+
+    } catch (err) {
+      showError('Connection error. Is the backend running?');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = isRegister ? 'Create Account' : 'Sign In';
+    }
+  }
+
+  // Allow Enter key submission
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter') handleSubmit();
+  });
+
+  // Redirect if already logged in
+  if (localStorage.getItem('token')) {
+    const role = localStorage.getItem('role');
+    window.location.href = role === 'doctor' ? 'doctor.html' : 'patient.html';
+  }
+</script>
+</body>
+</html>
