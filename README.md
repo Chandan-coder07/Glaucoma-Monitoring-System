@@ -131,13 +131,13 @@ glaucoma_monitor/
 
 
 ### (DASHBOARD OF Glaucoma Monitor System for Patient)
-<img width="1426" height="822" src="glaucoma_monitor/assets/patient.png" alt="glaucoma_monitor/assets/patient.png" />
+![Patient Dashboard](assets/patient.png)
 
 ### ((DASHBOARD OF Glaucoma Monitor System for Doctor))
-<img width="1431" height="820" alt="glaucoma_monitor/assets/Doctor.png" src="glaucoma_monitor/assets/Doctor.png" />
+![Doctor Dashboard](assets/Doctor.png)
 
 ### ((Demo Image ))
-<img width="1431" height="820" alt="glaucoma_monitor/assets/Demo-image.png"  src=" glaucoma_monitor/assets/Demo-image.png"/>
+![ Connection with Laptop ](assets/Demo-image.png)
 
 ## 🚀 Quick Start
 ### Prerequisites
@@ -296,7 +296,7 @@ Normal IOP range: 10–21 mmHg.
 
 ## 📊 System Architecture Overview
 
-<img width="1249" height="740" alt="glaucoma_monitor/assets/flowchart.png"  src="glaucoma_monitor/assets/flowchart.png"/>
+![Flow Chart](assets/flowchart.png)
 
 ### 📊 Working Demo Video 
 
