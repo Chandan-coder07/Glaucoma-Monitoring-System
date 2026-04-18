@@ -300,7 +300,9 @@ Normal IOP range: 10–21 mmHg.
 
 ### 📊 Working Demo Video 
 
-[▶️ Watch Demo](assets/demo.mp4)
+## 🎥 Demo Video
+
+[▶️ Watch Full Demo](assets/demo.mp4)
 
 ## 👨‍💻 Author
 
