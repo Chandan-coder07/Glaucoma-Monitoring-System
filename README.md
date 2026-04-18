@@ -1,472 +1,323 @@
-# 🔬 GlaucoMonitor — Glaucoma IOP Monitoring System
+[![Python](https://img.shields.io/badge/Python-3.8%2B-blue?logo=python&logoColor=yellow)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python](https://img.shields.io/badge/Python-3.11-blue.svg)](https://www.python.org/)
+[![scikit‑learn](https://img.shields.io/badge/scikit--learn-1.4-orange.svg)](https://scikit-learn.org/)
+[![Flask](https://img.shields.io/badge/Flask-2.3-green.svg)](https://flask.palletsprojects.com/)
 
-Real-time intraocular pressure (IOP) monitoring system connecting an ESP32 sensor to a web dashboard with AI-powered risk prediction.
+# 🔐 Glauco Monitor System
+
+### Real-Time Intraocular Pressure Monitoring System
+
+**AI-powered glaucoma risk prediction · Live sensor data · Doctor and Patient dashboards**
+
+GlaucoMonitor** is a full-stack medical IoT system for real-time **Intraocular Pressure (IOP)** monitoring — the primary risk factor for glaucoma, the leading cause of irreversible blindness worldwide.
+
+> Medical Disclaimer: This project is for research and educational purposes only. It is NOT a certified medical device and must not be used for clinical diagnosis without proper regulatory approval.
+
+## 🎯 What Makes This Project Unique?
+
+### Hardware and Sensing
+
+- ESP32 + HX710B 24-bit ADC pressure sensor
+- Air-puff applanation tonometry with IR detection
+- OLED display for real-time feedback
+- Automatic calibration on startup
+- Demo mode when no hardware connected
+
+## ⚡ Core Capabilities
+
+### Patient Dashboard
+- Real-time IOP gauge with live WebSocket updates
+- IOP trend chart (24h / 7d / 30d)
+- Left vs Right eye comparison chart
+- Risk distribution pie chart
+- Time-of-day heatmap
+- Monthly IOP calendar colour-coded by risk
+- Symptom logger (pain, blurriness, headache, redness)
+- Lifestyle tracker (sleep, exercise, stress, water)
+- Medicine tracker with daily reminders
+- In-app messaging with doctor
+- Dark mode, mobile responsive, Tamil/Hindi language support
+
+### Doctor Dashboard
+- All-patients overview with live IOP updates
+- Patient search and filter by age, risk level, status
+- Add/edit patient medications
+- Schedule appointments with Google Meet links
+- Clinical visit notes per patient
+- Discharge patients
+- Bulk PDF report download for all patients
+- Live alert panel for high-IOP readings
+
+### AI Risk Prediction
+- RandomForest classifier (scikit-learn)
+- Features: IOP value, patient age, corneal thickness
+- Output: LOW / MEDIUM / HIGH risk + probability score
+- Auto-trains on first startup, saves model as .pkl
+
+### Alert System
+- Email via Gmail SMTP
+- SMS via Twilio
+- WhatsApp via Twilio WhatsApp API
+- Telegram Bot
+- 30-minute escalation to emergency contact
+- Configurable threshold via environment variable
+
+### Security
+- JWT authentication (24h expiry)
+- bcrypt password hashing
+- Role-based access control (Doctor / Patient)
+- Environment variable secrets management
+
+---
+## System Architecture
+
+```
+Hardware Layer
+  HX710B Sensor -> ESP32 -> USB Serial (115200 baud) -> Python Backend
+
+FastAPI Backend
+  Serial Reader (async) -> ML Service (RandomForest) -> MongoDB
+  REST API (/auth /patients /measurements /reports /messages)
+  WebSocket Server (/ws/{patient_id} and /ws/all)
+  Alert Service (Email / SMS / WhatsApp / Telegram)
+
+Frontend
+  Patient Dashboard (patient.html) - 7 tabs with live charts
+  Doctor Dashboard (doctor.html)   - 6 tabs with patient management
+  Add Patient Page (add_patient.html)
+```
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 glaucoma_monitor/
 ├── backend/
-│   ├── main.py                  # FastAPI app entry point
-│   ├── run.py                   # Convenience startup script
-│   ├── requirements.txt
-│   ├── Dockerfile
-│   ├── Procfile                 # For Railway/Render
-│   ├── .env.example
-│   ├── models/
-│   │   └── database.py          # Pydantic models + DB init + seeding
+│   ├── main.py                  # FastAPI app + WebSocket endpoint
+│   ├── run.py                   # Server launcher with auto port selection
+│   ├── requirements.txt         # Python dependencies
+│   ├── Dockerfile               # Container config
+│   ├── .env.example             # Environment variables template
+│   ├── models/database.py       # Pydantic v2 models + DB seeding
 │   ├── routers/
-│   │   ├── auth.py              # POST /login, POST /register, GET /me
-│   │   ├── patients.py          # GET /patients, GET /patients/:id
-│   │   ├── measurements.py      # GET /history, POST /, GET /latest/:id
-│   │   └── reports.py           # GET /reports/download/:id  (PDF)
+│   │   ├── auth.py              # Login, register, JWT
+│   │   ├── patients.py          # Patient CRUD + photo + discharge
+│   │   ├── measurements.py      # IOP history + manual entry
+│   │   ├── messages.py          # Chat, notes, appointments, symptoms
+│   │   └── reports.py           # PDF generation
 │   ├── services/
 │   │   ├── auth_service.py      # JWT + bcrypt
 │   │   ├── serial_reader.py     # ESP32 USB serial + demo fallback
-│   │   ├── websocket_manager.py # WebSocket broadcast manager
-│   │   ├── alert_service.py     # Email (yagmail) + SMS (Twilio)
-│   │   └── ml_service.py        # RandomForest risk prediction
-│   └── ml/
-│       └── glaucoma_model.pkl   # Auto-generated on first run
-│
+│   │   ├── ml_service.py        # RandomForest risk prediction
+│   │   ├── websocket_manager.py # Real-time WebSocket broadcast
+│   │   └── alert_service.py     # Email/SMS/WhatsApp/Telegram
+│   └── ml/glaucoma_model.pkl    # Auto-generated (not in git)
 ├── frontend/
-│   ├── index.html               # Login page
+│   ├── index.html               # Login and registration
 │   ├── patient.html             # Patient dashboard
 │   ├── doctor.html              # Doctor dashboard
-│   └── vercel.json              # Vercel deployment config
-│
+│   ├── add_patient.html         # Add new patient form
+│   └── config.js                # API URL configuration
 ├── esp32/
-│   └── glaucoma_monitor.ino    # Arduino firmware for ESP32
-│
+│   └── glaucoma_monitor.ino    # Arduino firmware
 ├── docker-compose.yml
-├── nginx.conf
-└── README.md
+└── nginx.conf
 ```
 
 ---
 
-## 🚀 Quick Start (Local Development)
 
+
+### (DASHBOARD OF Glaucoma Monitor System for Patient)
+<img width="1426" height="822" src="glaucoma_monitor/assets/patient.png" alt="glaucoma_monitor/assets/patient.png" />
+
+### ((DASHBOARD OF Glaucoma Monitor System for Doctor))
+<img width="1431" height="820" alt="glaucoma_monitor/assets/Doctor.png" src="glaucoma_monitor/assets/Doctor.png" />
+
+### ((Demo Image ))
+<img width="1431" height="820" alt="glaucoma_monitor/assets/Demo-image.png"  src=" glaucoma_monitor/assets/Demo-image.png"/>
+
+## 🚀 Quick Start
 ### Prerequisites
 - Python 3.11+
-- MongoDB (local or Atlas)
-- Node.js (optional, for live-reload)
-- ESP32 + IOP sensor (optional — demo mode works without hardware)
+- MongoDB 7.0+ (or Docker)
+- Arduino IDE 2.x (for ESP32 firmware)
 
-### 1. Clone & Setup Backend
+### 1. Clone
 
 ```bash
-cd glaucoma_monitor/backend
-
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate        # Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Configure environment
-cp .env.example .env
-# Edit .env with your MongoDB URL, serial port, SMTP, Twilio credentials
+git clone https://github.com/YOUR_USERNAME/glaucoma-monitor.git
+cd glaucoma-monitor
 ```
 
 ### 2. Start MongoDB
 
-Option A — Local:
 ```bash
-mongod --dbpath /usr/local/var/mongodb
+docker run -d -p 27017:27017 --name mongo mongo:7
 ```
 
-Option B — Docker:
-```bash
-docker run -d -p 27017:27017 --name mongo mongo:7.0
-```
-
-Option C — MongoDB Atlas (recommended for production): see [Atlas Setup](#mongodb-atlas-setup) below.
-
-### 3. Run Backend
+### 3. Configure environment
 
 ```bash
 cd backend
-python run.py --reload
-# or directly:
-uvicorn main:app --reload --port 8000
+cp .env.example .env
+# Edit .env with your values
 ```
 
-The backend will:
-- ✅ Connect to MongoDB and create indexes
-- ✅ Seed demo accounts (doctor + patient) if DB is empty
-- ✅ Train the ML model on first run (saves to `ml/glaucoma_model.pkl`)
-- ✅ Start serial reader (falls back to **demo mode** if ESP32 not connected)
-
-**Demo credentials seeded automatically:**
-| Role    | Email                     | Password   |
-|---------|---------------------------|------------|
-| Doctor  | doctor@glaucoma.demo      | doctor123  |
-| Patient | patient@glaucoma.demo     | patient123 |
-
-### 4. Serve Frontend
+### 4. Run backend
 
 ```bash
-# Using Python's built-in server (simplest)
-cd frontend
-python -m http.server 3000
-
-# Then open: http://localhost:3000
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+python run.py --reload
 ```
 
----
+### 5. Serve frontend
 
-## 🔌 ESP32 Hardware Setup
+```bash
+cd frontend
+python3 -m http.server 3000
+```
+
+Open **http://localhost:3000**
+
+### Demo Accounts
+
+| Role | Email | Password |
+|------|-------|----------|
+| Doctor | doctor@glaucoma.demo | doctor123 |
+| Patient | patient@glaucoma.demo | patient123 |
+| Patient | priya@glaucoma.demo | demo123 |
+| Patient | ravi@glaucoma.demo | demo123 |
+
+---
+## Hardware Setup
 
 ### Wiring
 
 ```
-ESP32 Pin 34  ──→  IOP Sensor analog output
-ESP32 Pin 26  ──→  Eye selector switch (HIGH=RIGHT, LOW=LEFT)
-ESP32 Pin 2   ──→  Built-in LED (status indicator)
-ESP32 Pin 27  ──→  Buzzer (optional, for high IOP alert)
-ESP32 GND     ──→  Sensor GND
-ESP32 3.3V    ──→  Sensor VCC
+ESP32 GPIO 4  ---- HX710B DOUT
+ESP32 GPIO 5  ---- HX710B SCK
+ESP32 GPIO 17 ---- Air Pump relay
+ESP32 GPIO 13 ---- IR sensor DO
+ESP32 GPIO 21 ---- OLED SDA
+ESP32 GPIO 19 ---- OLED SCL
+ESP32 3.3V    ---- HX710B VCC
+ESP32 GND     ---- HX710B GND
 ```
 
-### Sensor Compatibility
-The firmware is designed for analog pressure sensors with a 0.5V–2.5V output range (e.g., Honeywell ABP series). Adjust `SENSOR_MIN_V`, `SENSOR_MAX_V`, and `IOP_MAX` constants in `glaucoma_monitor.ino` to match your sensor's datasheet.
-
-### Uploading Firmware
-
-1. Install [Arduino IDE](https://www.arduino.cc/en/software) or [PlatformIO](https://platformio.org/)
-2. Add ESP32 board support (Espressif Systems)
-3. Open `esp32/glaucoma_monitor.ino`
-4. Select your board: **ESP32 Dev Module**
-5. Select the correct COM/tty port
+### Flash Firmware
+1. Install Arduino IDE 2.x
+2. Add ESP32 board support URL in Preferences:
+   `https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json`
+3. Install "esp32 by Espressif Systems" via Boards Manager
+4. Open `esp32/glaucoma_monitor.ino`
+5. Select ESP32 Dev Module and your port
 6. Upload
 
-### Configure Serial Port in Backend
-
-Edit `.env`:
-```env
-# macOS
-SERIAL_PORT=/dev/tty.usbserial-XXXX
-
-# Linux
-SERIAL_PORT=/dev/ttyUSB0
-
-# Windows
-SERIAL_PORT=COM3
-
-BAUD_RATE=9600
-```
-
-Find your port:
-```bash
-# macOS/Linux
-ls /dev/tty.*
-ls /dev/ttyUSB*
-
-# Windows (PowerShell)
-Get-WMIObject Win32_SerialPort | Select-Object Name, DeviceID
-```
-
 ---
 
-## 🧠 AI Risk Model
+## Deployment
 
-The `ml_service.py` trains a **RandomForestClassifier** on first startup using a synthetic but clinically-inspired dataset. It uses three features:
+### Railway (Backend) + Vercel (Frontend)
 
-| Feature           | Range     | Clinical Significance                     |
-|-------------------|-----------|-------------------------------------------|
-| IOP (mmHg)        | 8 – 35    | Primary risk indicator                    |
-| Age (years)       | 20 – 90   | Risk increases significantly over 60      |
-| Cornea thickness  | 440–640 μm| Thin corneas underestimate true IOP       |
+1. Create free MongoDB Atlas cluster at cloud.mongodb.com
+2. Push this repo to GitHub
+3. Connect to Railway → deploy `backend/` folder → add environment variables
+4. Edit `frontend/config.js` with your Railway URL
+5. Connect to Vercel → deploy `frontend/` folder
 
-**Output risk levels:**
-- 🟢 `LOW` — IOP ≤ 18 mmHg, low age/cornea risk
-- 🟡 `MEDIUM` — IOP 18–24 mmHg or elevated risk factors
-- 🔴 `HIGH` — IOP > 24 mmHg or multiple high-risk factors
-
-To retrain with your own dataset (CSV with columns: `iop`, `age`, `cornea_thickness`, `risk`):
-```python
-# In ml_service.py, replace _generate_training_data() with:
-import pandas as pd
-df = pd.read_csv("your_dataset.csv")
-X = df[["iop", "age", "cornea_thickness"]].values
-y = df["risk"].map({"LOW": 0, "MEDIUM": 1, "HIGH": 2}).values
-return X, y
-```
-
----
-
-## 🔔 Alert System Configuration
-
-### Email (Gmail)
-
-1. Enable 2FA on your Google account
-2. Generate an [App Password](https://myaccount.google.com/apppasswords)
-3. Set in `.env`:
-```env
-ALERT_EMAIL=your@gmail.com
-ALERT_EMAIL_PASSWORD=xxxx-xxxx-xxxx-xxxx
-```
-
-### SMS (Twilio)
-
-1. Create a [Twilio account](https://www.twilio.com)
-2. Get a phone number
-3. Set in `.env`:
-```env
-TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-TWILIO_AUTH_TOKEN=your_auth_token
-TWILIO_FROM_NUMBER=+1xxxxxxxxxx
-DOCTOR_PHONE_NUMBER=+1xxxxxxxxxx
-```
-
-Alerts fire when `IOP > 21 mmHg`, with a 30-minute cooldown per patient to prevent spam.
-
----
-
-## 📄 PDF Report
-
-Doctors and patients can download a PDF report via:
-```
-GET /api/reports/download/{patient_id}?days=30
-Authorization: Bearer <token>
-```
-
-The report includes:
-- Patient demographics
-- Summary statistics (avg, max, min IOP)
-- Risk distribution (LOW / MEDIUM / HIGH counts)
-- Full measurement history table (up to 50 entries)
-
----
-
-## 🔐 Authentication
-
-JWT tokens are issued at login and must be included in all API requests:
-
-```javascript
-headers: { "Authorization": "Bearer <token>" }
-```
-
-Token validity: **24 hours**
-
-### Role Permissions
-
-| Endpoint                          | Doctor | Patient |
-|-----------------------------------|--------|---------|
-| `GET /api/patients/`              | ✅     | ❌      |
-| `GET /api/patients/:id`           | ✅     | Own only|
-| `GET /api/measurements/history`   | ✅     | Own only|
-| `GET /api/reports/download/:id`   | ✅     | Own only|
-| `WebSocket /ws/all`               | ✅     | ❌      |
-| `WebSocket /ws/:patient_id`       | ✅     | Own only|
-
----
-
-## 🌐 WebSocket Protocol
-
-Connect: `ws://localhost:8000/ws/{patient_id}`
-- Patients: use their own `user_id`
-- Doctors: use `"all"` to receive all patient updates
-
-**Incoming message format:**
-```json
-{
-  "type": "new_measurement",
-  "data": {
-    "id": "664a1b2c3d4e5f6a7b8c9d0e",
-    "patient_id": "664a1b2c3d4e5f6a7b8c9d01",
-    "iop_value": 22.3,
-    "risk_level": "HIGH",
-    "risk_probability": 0.87,
-    "eye": "RIGHT",
-    "timestamp": "2024-05-20T14:32:10.123456"
-  }
-}
-```
-
-**Keep-alive:**
-```
-Client → Server: "ping"
-Server → Client: {"type": "pong"}
-```
-
----
-
-## ☁️ Deployment
-
-### MongoDB Atlas Setup
-
-1. Go to [cloud.mongodb.com](https://cloud.mongodb.com) → Create free cluster
-2. Create a database user (username + password)
-3. Whitelist IP `0.0.0.0/0` (or your server IP)
-4. Get connection string:
-   ```
-   mongodb+srv://<user>:<password>@cluster0.xxxxx.mongodb.net/glaucoma_monitor
-   ```
-5. Set `MONGO_URL` in your deployment environment
-
----
-
-### Backend — Railway.app
-
-1. Push backend to GitHub
-2. Go to [railway.app](https://railway.app) → New Project → Deploy from GitHub
-3. Select the `backend/` folder
-4. Add environment variables (from `.env.example`)
-5. Railway auto-detects `Procfile` and deploys
-
-Your backend URL will be: `https://glaucoma-backend.railway.app`
-
----
-
-### Backend — Render.com
-
-1. New Web Service → Connect GitHub repo
-2. Build command: `pip install -r requirements.txt`
-3. Start command: `uvicorn main:app --host 0.0.0.0 --port $PORT`
-4. Add environment variables
-5. Deploy
-
----
-
-### Frontend — Vercel
-
-1. Edit `frontend/vercel.json` — replace `your-backend.railway.app` with your actual backend URL
-2. Push `frontend/` to GitHub
-3. Go to [vercel.com](https://vercel.com) → New Project → Import repo
-4. Set root directory to `frontend/`
-5. Deploy
-
----
-
-### Frontend — Netlify
+### Docker (Self-hosted)
 
 ```bash
-# Install Netlify CLI
-npm install -g netlify-cli
-
-cd frontend
-netlify deploy --prod --dir .
-```
-
-Create `frontend/_redirects`:
-```
-/api/*  https://your-backend.railway.app/api/:splat  200
-```
-
----
-
-### Docker Compose (Self-hosted)
-
-```bash
-# Copy and configure environment
 cp backend/.env.example .env
-# Edit .env with your values
-
-# Start all services
 docker-compose up -d
-
-# View logs
-docker-compose logs -f backend
-
-# Stop
-docker-compose down
-```
-
-Access:
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:8000
-- API Docs: http://localhost:8000/docs
-
----
-
-## 🧪 Testing the System
-
-### Test without ESP32 (Demo Mode)
-
-The backend automatically falls back to **demo mode** when no serial port is available. It simulates ESP32 readings every 5 seconds with realistic IOP values including occasional highs to trigger alerts.
-
-### Manual Measurement Entry
-
-```bash
-curl -X POST http://localhost:8000/api/measurements/ \
-  -H "Authorization: Bearer <your_token>" \
-  -H "Content-Type: application/json" \
-  -d '{"patient_id": "<patient_id>", "iop_value": 24.5, "eye": "RIGHT"}'
-```
-
-### Test High IOP Alert
-
-```bash
-# Use the manual entry above with iop_value > 21
-# If email/SMS credentials are configured, alerts will fire
-# Otherwise, check backend console for: 🚨 [ALERT] High IOP detected...
-```
-
-### Serial Port Simulation (without ESP32)
-
-```python
-# Install: pip install pyserial
-import serial
-import time
-import random
-
-# Connect to a virtual serial port (use socat on macOS/Linux)
-# socat -d -d pty,raw,echo=0 pty,raw,echo=0
-# This creates two linked virtual ports, e.g., /dev/pts/3 and /dev/pts/4
-
-port = serial.Serial('/dev/pts/3', 9600)
-while True:
-    iop = round(random.uniform(15, 26), 1)
-    msg = f"IOP:{iop},EYE:RIGHT,PATIENT:default\n"
-    port.write(msg.encode())
-    print(f"Sent: {msg.strip()}")
-    time.sleep(5)
 ```
 
 ---
+## API Reference
 
-## 🛡️ Security Checklist for Production
+Full interactive docs: `http://localhost:8000/docs`
 
-- [ ] Change `JWT_SECRET_KEY` to a long random string (32+ chars)
-- [ ] Restrict CORS `allow_origins` to your frontend domain
-- [ ] Use MongoDB Atlas with strong password + IP whitelist
-- [ ] Use Gmail App Password (never your real password)
-- [ ] Enable HTTPS on all deployments (Vercel/Railway handle this automatically)
-- [ ] Set `DEBUG=False` / remove `--reload` flag
-- [ ] Use environment secrets manager (Railway Secrets, Vercel Environment Variables)
-- [ ] Rate-limit the `/api/auth/login` endpoint in production
-
----
-
-## 📊 API Reference
-
-```
-POST   /api/auth/register     - Register new user
-POST   /api/auth/login        - Get JWT token
-GET    /api/auth/me           - Current user profile
-
-GET    /api/patients/         - List all patients (doctor)
-GET    /api/patients/:id      - Patient profile + medicines
-PUT    /api/patients/medicines/:id/taken  - Mark medicine taken
-
-GET    /api/measurements/history          - IOP history (with filters)
-POST   /api/measurements/               - Manual measurement
-GET    /api/measurements/latest/:id     - Latest IOP reading
-
-GET    /api/reports/download/:id        - Download PDF report
-
-WS     /ws/:patient_id                  - Real-time IOP stream
-GET    /health                          - System health check
-GET    /docs                            - Interactive API docs (Swagger)
-```
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| /api/auth/login | POST | — | Get JWT token |
+| /api/auth/register | POST | — | Create account |
+| /api/patients/ | GET | Doctor | List all patients |
+| /api/measurements/history | GET | JWT | IOP history |
+| /api/reports/download/:id | GET | JWT | Download PDF |
+| /ws/:patient_id | WS | JWT | Live IOP stream |
 
 ---
 
-## ⚠️ Medical Disclaimer
 
-This software is for **research and educational purposes only**. It is NOT a certified medical device and must NOT be used for clinical diagnosis or treatment decisions. Always consult a qualified ophthalmologist for glaucoma diagnosis and management.
+## AI Model
+
+| Feature | Range | Notes |
+|---------|-------|-------|
+| IOP (mmHg) | 8–35 | Primary risk factor |
+| Age (years) | 20–90 | Higher risk after 60 |
+| Cornea thickness (μm) | 440–640 | Thin = underestimated IOP |
+
+Risk levels: LOW (IOP ≤ 18), MEDIUM (18–24), HIGH (> 24)
+
+---
+
+## Security Checklist
+
+- [ ] Change `JWT_SECRET_KEY` to random 32-char string
+- [ ] Restrict MongoDB Atlas IP whitelist
+- [ ] Use Gmail App Password not account password
+- [ ] Set `SERIAL_PORT=DISABLED` on cloud servers
+- [ ] Enable HTTPS (automatic on Railway/Vercel)
+
+---
+
+## Built With
+
+FastAPI · MongoDB · scikit-learn · ReportLab · Chart.js · pyserial-asyncio · Twilio · Arduino ESP32 · HX710B
+
+---
+
+## License
+
+MIT License — see [LICENSE](LICENSE) for details.
+
+---
+
+## Author
+
+**Chandan Sharma** — IoT + AI Medical Monitoring Project
+
+---
+
+## Medical Disclaimer
+
+This software is for research and educational purposes only. It is NOT a certified medical device. Always consult a qualified ophthalmologist for glaucoma diagnosis and management.
+
+Normal IOP range: 10–21 mmHg.
+
+## 📊 System Architecture Overview
+
+<img width="1249" height="740" alt="glaucoma_monitor/assets/flowchart.png"  src="glaucoma_monitor/assets/flowchart.png"/>
+
+### 📊 Working Demo Video 
+## 🎥 Demo Video
+
+## 🎥 Demo Video
+
+[▶️ Watch Demo](assets/demo.mp4)
+
+## 👨‍💻 Author
+
+**Chandan Kumar Sharma **  
+*Department of Computer Science and Engineering*  
+**KPR Institute of Engineering and Technology (KPR IET)**  
+*Coimbatore, Tamil Nadu, India*
+
+**© 2026 Chandan Kumar Sharma | KPR Institute of Engineering and Technology, CSE Department**
+
+*Built with ❤️ for a safer digital world* 🔐
