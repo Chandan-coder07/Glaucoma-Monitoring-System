@@ -300,9 +300,6 @@ Normal IOP range: 10–21 mmHg.
 
 ### 📊 Working Demo Video 
 
-## 🎥 Demo Video
-## 🎥 Demo Video
-
 [▶️ Watch Full Demo](https://raw.githubusercontent.com/Chandan-coder07/Glaucoma-Monitoring-System/main/assets/demo.mp4)
 
 ## 👨‍💻 Author
